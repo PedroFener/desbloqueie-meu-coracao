@@ -8,6 +8,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write   # para publicar o APK na página de Releases
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -54,6 +57,20 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle bundleRelease assembleRelease --no-daemon
+
+      - name: Dar nome bonito ao APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/DesbloqueieMeuCoracao.apk
+
+      - name: Publicar o APK em Releases (link direto para baixar no celular)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Desbloqueie Meu Coração v1.0.${{ github.run_number }}
+          body: |
+            Jogo indie romântico em pixel art, criado por Pedro Henrique Dias Fener.
+            Baixe o arquivo **DesbloqueieMeuCoracao.apk** abaixo e instale no seu Android.
+          files: android/app/build/outputs/apk/debug/DesbloqueieMeuCoracao.apk
+          make_latest: true
 
       - name: Enviar APK de teste
         uses: actions/upload-artifact@v4
