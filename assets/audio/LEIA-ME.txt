@@ -1,0 +1,4 @@
+Pasta reservada.
+
+Nesta versão, toda a música e os efeitos sonoros é gerada por código (veja js/sprites.js e js/audio.js), sem arquivos externos.
+Coloque aqui arquivos próprios caso queira substituir a arte ou o áudio no futuro.

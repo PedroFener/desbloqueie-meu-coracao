@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2a1b4a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Desbloqueie Meu Coração — um pequeno jogo indie romântico em pixel art para fazer uma declaração especial.">
+  <meta name="author" content="Pedro Henrique Dias Fener">
+  <title>Desbloqueie Meu Coração</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-root">
+    <!-- Canvas principal: todo o mundo pixel art é desenhado aqui -->
+    <canvas id="game-canvas" aria-label="Tela do jogo"></canvas>
+
+    <!-- HUD durante as fases -->
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <div class="hud-chip" id="hud-pieces" title="Partes do coração"><span class="ico ico-heart"></span><span id="hud-pieces-txt">0/5</span></div>
+        <div class="hud-chip" id="hud-sparks" title="Corações brilhantes"><span class="ico ico-spark"></span><span id="hud-sparks-txt">0/5</span></div>
+        <div class="hud-chip hidden" id="hud-key" title="Chave dourada"><span class="ico ico-key"></span></div>
+      </div>
+      <div class="hud-center" id="hud-objective">Explore o jardim</div>
+      <button class="hud-btn" id="btn-pause" aria-label="Pausar">II</button>
+    </div>
+
+    <!-- Controles de toque -->
+    <div id="touch-controls" class="hidden">
+      <div id="joystick-zone">
+        <div id="joystick-base"><div id="joystick-knob"></div></div>
+      </div>
+      <button id="btn-action" aria-label="Interagir">A</button>
+    </div>
+
+    <!-- Caixa de diálogo -->
+    <div id="dialogue" class="hidden" role="dialog" aria-live="polite">
+      <div class="dlg-name" id="dlg-name"></div>
+      <div class="dlg-text" id="dlg-text"></div>
+      <div class="dlg-next" id="dlg-next">▼</div>
+    </div>
+
+    <!-- Aviso flutuante (toast) -->
+    <div id="toast" class="hidden"></div>
+
+    <!-- ===================== TELAS ===================== -->
+
+    <!-- Menu principal -->
+    <section class="screen hidden" id="screen-menu">
+      <div class="title-wrap">
+        <div class="title-heart"></div>
+        <h1 class="game-title">Desbloqueie<br><span>Meu Coração</span></h1>
+        <p class="subtitle">uma pequena aventura de amor</p>
+      </div>
+      <nav class="menu-list">
+        <button class="pbtn" data-action="new">Nova partida</button>
+        <button class="pbtn" data-action="continue" id="btn-continue">Continuar</button>
+        <button class="pbtn" data-action="levels">Fases</button>
+        <button class="pbtn" data-action="customize">Personalizar</button>
+        <button class="pbtn" data-action="settings">Opções</button>
+        <button class="pbtn" data-action="credits">Créditos</button>
+      </nav>
+      <button class="fs-corner" id="btn-fs-menu" aria-label="Tela cheia" title="Tela cheia"><span></span></button>
+      <p class="version">v1.0.0 — criado por Pedro Henrique Dias Fener</p>
+    </section>
+
+    <!-- Personalização -->
+    <section class="screen hidden" id="screen-customize">
+      <div class="panel">
+        <h2>Personalize a declaração</h2>
+        <form id="form-customize" autocomplete="off">
+          <label>Quem vai receber
+            <input type="text" id="cfg-to" maxlength="24" placeholder="Ex.: Ana" required>
+          </label>
+          <label>Quem está declarando
+            <input type="text" id="cfg-from" maxlength="24" placeholder="Ex.: Lucas" required>
+          </label>
+          <fieldset>
+            <legend>Tipo de mensagem</legend>
+            <div class="radio-row">
+              <label class="radio"><input type="radio" name="cfg-type" value="namoro" checked><span>Pedido de namoro</span></label>
+              <label class="radio"><input type="radio" name="cfg-type" value="amor"><span>Declaração de amor</span></label>
+              <label class="radio"><input type="radio" name="cfg-type" value="surpresa"><span>Surpresa romântica</span></label>
+            </div>
+          </fieldset>
+          <label>Mensagem final (aparece na última fase)
+            <textarea id="cfg-message" maxlength="400" rows="4" placeholder="Escreva aqui o que seu coração quer dizer..."></textarea>
+          </label>
+          <p class="hint">Tudo fica salvo só neste aparelho. Nada é enviado para a internet.</p>
+          <div class="btn-row">
+            <button type="button" class="pbtn ghost" id="btn-customize-back">Voltar</button>
+            <button type="submit" class="pbtn" id="btn-customize-save">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Seleção de fases -->
+    <section class="screen hidden" id="screen-levels">
+      <div class="panel">
+        <h2>Fases</h2>
+        <div id="level-grid" class="level-grid"></div>
+        <div class="btn-row">
+          <button class="pbtn ghost" data-back="menu">Voltar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Opções -->
+    <section class="screen hidden" id="screen-settings">
+      <div class="panel">
+        <h2>Opções</h2>
+        <div class="toggle-list">
+          <button class="pbtn toggle" data-toggle="music">Música: <b>ligada</b></button>
+          <button class="pbtn toggle" data-toggle="sfx">Efeitos: <b>ligados</b></button>
+          <button class="pbtn toggle" data-toggle="fullscreen">Tela cheia: <b>desligada</b></button>
+          <button class="pbtn toggle" data-toggle="touch">Controles de toque: <b>auto</b></button>
+          <button class="pbtn danger" id="btn-reset-save">Apagar progresso</button>
+        </div>
+        <div class="btn-row">
+          <button class="pbtn ghost" data-back="menu">Voltar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Créditos -->
+    <section class="screen hidden" id="screen-credits">
+      <div class="panel credits">
+        <h2>Créditos</h2>
+        <div class="credits-scroll">
+          <p><b>Desbloqueie Meu Coração</b></p>
+          <p>Jogo indie romântico em pixel art.</p>
+          <p class="cr-h">Criado por</p>
+          <p class="cr-author">Pedro Henrique Dias Fener</p>
+          <p class="cr-h">Arte</p>
+          <p>Toda a pixel art é desenhada por código, original deste projeto.</p>
+          <p class="cr-h">Música e sons</p>
+          <p>Compostos e sintetizados em tempo real com Web Audio API — originais, livres de direitos autorais.</p>
+          <p class="cr-h">Feito com</p>
+          <p>HTML5 · CSS3 · JavaScript · Canvas</p>
+          <p class="cr-h">Declaração</p>
+          <p id="credits-couple">De alguém especial, para alguém especial.</p>
+          <p class="cr-h">Fases</p>
+          <p>1 · A Primeira Chave<br>2 · Peças que se Encaixam<br>3 · Nosso Destino<br>4 · O Caminho Até Você<br>5 · A Última Surpresa</p>
+          <p class="cr-h">Obrigado por jogar</p>
+          <p class="cr-heart">♥</p>
+        </div>
+        <div class="btn-row">
+          <button class="pbtn ghost" data-back="menu">Voltar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pausa -->
+    <section class="screen hidden" id="screen-pause">
+      <div class="panel small">
+        <h2>Pausa</h2>
+        <nav class="menu-list">
+          <button class="pbtn" data-action="resume">Continuar</button>
+          <button class="pbtn toggle" data-toggle="music">Música: <b>ligada</b></button>
+          <button class="pbtn toggle" data-toggle="sfx">Efeitos: <b>ligados</b></button>
+          <button class="pbtn toggle" data-toggle="fullscreen">Tela cheia: <b>desligada</b></button>
+          <button class="pbtn" data-action="restart">Reiniciar fase</button>
+          <button class="pbtn ghost" data-action="quit">Menu principal</button>
+        </nav>
+      </div>
+    </section>
+
+    <!-- Carta / mensagem romântica -->
+    <section class="screen hidden" id="screen-letter">
+      <div class="letter">
+        <div class="letter-seal"></div>
+        <p class="letter-to" id="letter-to"></p>
+        <p class="letter-body" id="letter-body"></p>
+        <p class="letter-from" id="letter-from"></p>
+        <button class="pbtn" id="btn-letter-ok">Guardar no coração</button>
+      </div>
+    </section>
+
+    <!-- Conclusão de fase -->
+    <section class="screen hidden" id="screen-complete">
+      <div class="panel small center">
+        <div class="complete-heart" id="complete-heart"></div>
+        <h2 id="complete-title">Fase concluída!</h2>
+        <p id="complete-sub">Parte do coração desbloqueada</p>
+        <p class="complete-stats" id="complete-stats"></p>
+        <nav class="menu-list">
+          <button class="pbtn" data-action="next" id="btn-next-level">Próxima fase</button>
+          <button class="pbtn" data-action="replay">Jogar de novo</button>
+          <button class="pbtn ghost" data-action="quit">Menu principal</button>
+        </nav>
+      </div>
+    </section>
+
+    <!-- Declaração final (Fase 5) -->
+    <section class="screen hidden" id="screen-final">
+      <div class="letter final-letter" id="final-letter">
+        <div class="letter-seal"></div>
+        <p class="final-kicker">A mensagem final</p>
+        <p class="letter-to" id="final-to"></p>
+        <p class="letter-body" id="final-body"></p>
+        <p class="final-closing" id="final-closing"></p>
+        <p class="letter-from" id="final-from"></p>
+        <div class="final-answers hidden" id="final-answers"></div>
+      </div>
+      <div class="final-celebrate hidden" id="final-celebrate">
+        <div class="title-heart"></div>
+        <h2 id="final-celebrate-title"></h2>
+        <p class="final-names" id="final-names"></p>
+        <p class="final-fim">Fim</p>
+        <p class="final-author">Um jogo de Pedro Henrique Dias Fener</p>
+        <div class="btn-row">
+          <button class="pbtn" id="btn-final-credits">Ver créditos</button>
+          <button class="pbtn ghost" id="btn-final-menu">Menu principal</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Confirmação genérica -->
+    <section class="screen hidden" id="screen-confirm">
+      <div class="panel small center">
+        <h2 id="confirm-title">Tem certeza?</h2>
+        <p id="confirm-text"></p>
+        <div class="btn-row">
+          <button class="pbtn ghost" id="btn-confirm-no">Não</button>
+          <button class="pbtn" id="btn-confirm-yes">Sim</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Camada de transição (fade) -->
+    <div id="fade"></div>
+
+    <!-- Aviso de rotação/primeiro toque -->
+    <div id="tap-to-start" class="hidden">
+      <div class="tts-heart"></div>
+      <p>Toque para começar</p>
+    </div>
+  </div>
+
+  <!-- Scripts (sem módulos ES, para funcionar também abrindo o arquivo direto e em WebView Android) -->
+  <script src="js/utils.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/dialogue.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/scene-base.js"></script>
+  <script src="js/levels/level1.js"></script>
+  <script src="js/levels/level2.js"></script>
+  <script src="js/levels/level3.js"></script>
+  <script src="js/levels/level4.js"></script>
+  <script src="js/levels/level5.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

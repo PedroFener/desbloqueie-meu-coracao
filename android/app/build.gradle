@@ -1,0 +1,65 @@
+/*
+ * App Android do "Desbloqueie Meu Coração" — Pedro Henrique Dias Fener
+ * O jogo (HTML/CSS/JS da pasta acima) é copiado automaticamente para
+ * dentro do APK a cada build e roda num WebView em tela cheia, offline.
+ */
+plugins {
+    id 'com.android.application'
+}
+
+// Chave de assinatura (opcional): lida de variáveis de ambiente.
+// Sem chave, o build gera só o APK de teste (debug), que já instala no celular.
+def keystoreFile = file('upload-keystore.jks')
+def hasReleaseKey = keystoreFile.exists() && System.getenv('KEYSTORE_PASSWORD')
+
+android {
+    namespace 'com.pedrofener.meucoracao'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.pedrofener.meucoracao'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        if (hasReleaseKey) {
+            release {
+                storeFile keystoreFile
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (hasReleaseKey) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += [layout.buildDirectory.dir('webassets').get().asFile]
+        }
+    }
+}
+
+// Copia os arquivos do jogo para assets/www antes de compilar
+def copyWeb = tasks.register('copyWeb', Copy) {
+    from(rootProject.file('..')) {
+        include 'index.html', 'manifest.json', 'css/**', 'js/**', 'assets/**'
+        exclude '**/LEIA-ME.txt'
+    }
+    into layout.buildDirectory.dir('webassets/www')
+}
+tasks.named('preBuild') { dependsOn copyWeb }
